@@ -1,7 +1,8 @@
 import auth0 from 'auth0-js';
+import AWS from 'aws-sdk';
 import { AUTH_CONFIG } from './auth0-variables';
 
-class Auth {
+class Auth0Auth {
   accessToken;
   idToken;
   expiresAt;
@@ -51,10 +52,7 @@ class Auth {
   }
 
   setSession(authResult) {
-    // Set isLoggedIn flag in localStorage
     localStorage.setItem('isLoggedIn', 'true');
-
-    // Set the time that the access token will expire at
     let expiresAt = (authResult.expiresIn * 1000) + new Date().getTime();
     this.accessToken = authResult.accessToken;
     this.idToken = authResult.idToken;
@@ -74,22 +72,51 @@ class Auth {
   }
 
   logout() {
-    // Remove tokens and expiry time
     this.accessToken = null;
     this.idToken = null;
     this.expiresAt = 0;
-
-    // Remove isLoggedIn flag from localStorage
     localStorage.removeItem('isLoggedIn');
     this.auth0.logout({returnTo: window.location.href});
   }
 
   isAuthenticated() {
-    // Check whether the current time is past the
-    // access token's expiry time
     let expiresAt = this.expiresAt;
     return new Date().getTime() < expiresAt;
   }
+
 }
 
-export default Auth
+class AWSAuth {
+  constructor(store) {
+    this.store = store
+  }
+
+  login(idToken) {
+    AWS.config.region = AUTH_CONFIG.region;
+    AWS.config.store = this.store;
+    AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+      IdentityPoolId: AUTH_CONFIG.identityPoolId,
+      Logins: { [AUTH_CONFIG.domain]: idToken}
+    });
+    AWS.config.credentials.get(function() {
+      let creds = {
+        accessKeyId: AWS.config.credentials.accessKeyId,
+        secretAccessKey: AWS.config.credentials.secretAccessKey,
+        sessionToken: AWS.config.credentials.sessionToken,
+        identityId: AWS.config.credentials.identityId
+      }
+      AWS.config.store.dispatch({type: 'AWS_CREDS', awsCredentials: creds});
+    })
+  }
+
+  logout() {
+  }
+
+  static middleware() {
+    return next => action => {
+      return next(action)
+    }
+  }
+}
+
+export { Auth0Auth, AWSAuth }

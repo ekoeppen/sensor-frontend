@@ -2,17 +2,18 @@ import React, { Component } from 'react';
 import {
   Box,
   Button,
+  Text,
   Grommet
 } from 'grommet';
 import {
   connect,
   Provider
 } from 'react-redux'
-import Auth from './auth'
 import {
   TemperatureView,
   TemperatureHumidityView
 } from '@ekoeppen/grommet-sensor-components'
+import moment from 'moment'
 
 const theme = {
   global: {
@@ -27,7 +28,7 @@ const theme = {
   },
   button: {
     border: {
-      radius: '4px'
+      radius: '8px'
     }
   }
 };
@@ -42,17 +43,6 @@ const subscriber = (subs) => connect(
   },
   dispatch => {return {}})
 
-const L1 = subscriber([
-  {prop: 'temperature', key: 'SWAP/Indoors/Temperature'},
-  {prop: 'timestamp', key: 'SWAP/Indoors/Timestamp'},
-  {prop: 'voltage', key: 'SWAP/Indoors/Voltage'}
-  ])(TemperatureView)
-const L2 = subscriber([
-  {prop: 'temperature', key: 'SWAP/Bedroom/Temperature'},
-  {prop: 'humidity', key: 'SWAP/Bedroom/Humidity'},
-  {prop: 'timestamp', key: 'SWAP/Bedroom/Timestamp'},
-  {prop: 'voltage', key: 'SWAP/Bedroom/Voltage'}
-  ])(TemperatureHumidityView)
 const L3 = subscriber([
   {prop: 'temperature', key: 'SWAP/Garage/Temperature'},
   {prop: 'timestamp', key: 'SWAP/Garage/Timestamp'},
@@ -64,24 +54,59 @@ const L4 = subscriber([
   {prop: 'voltage', key: 'SWAP/Heating/Voltage'}
   ])(TemperatureView)
 
-const auth = new Auth()
-
-class AuthButton extends Component {
-  render() {
-    if (this.props.isAuthenticated) {
-      return <Button label='Logout' onClick={auth.logout}/>
-    } else {
-      return <Button label='Login' onClick={auth.login}/>
+const L1 = connect(
+  state => {
+    return {
+      temperature: state.Indoors.Temperature,
+      humidity: state.Indoors.Humidity,
+      voltage: state.Indoors.Voltage,
+      timestamp: state.Indoors.ts
     }
   }
-}
+)(TemperatureHumidityView);
+
+const L2 = connect(
+  state => {
+    return {
+      temperature: state.Bedroom.Temperature,
+      humidity: state.Bedroom.Humidity,
+      voltage: state.Bedroom.Voltage,
+      timestamp: state.Bedroom.ts
+    }
+  }
+)(TemperatureHumidityView);
+
+const login = () => ({type: 'LOGIN'})
+const logout = () => ({type: 'LOGOUT'})
+const refresh = () => ({type: 'REFRESH'})
 
 const Auth0Button = connect(
-  state => {
-    return {isAuthenticated: state.loginDone}
-  },
-  dispatch => {}
-)(AuthButton);
+  state => {return {isAuthenticated: state.loginDone}},
+  {login, logout}
+)(({isAuthenticated, login, logout}) => {
+  if (isAuthenticated) {
+    return <Button label='Logout' onClick={logout}/>
+  } else {
+    return <Button label='Login' onClick={login}/>
+  }
+});
+
+const RefreshButton = connect(
+  state => {return {canRefresh: state.awsLoginDone}},
+  {refresh}
+)(({canRefresh, refresh}) =>
+  <Button disabled={!canRefresh} label='Refresh' onClick={refresh}/>
+);
+
+const HeartBeat = connect(
+  state => {return {heartbeat: state.heartbeat.count, ts: state.heartbeat.ts}}
+)((props) => {
+  if (props.heartbeat) {
+    return <Text size='small'>{props.heartbeat} {moment.unix(props.ts).format("YYYY-MM-DD HH:mm:ss")}</Text>
+  } else {
+    return null
+  }
+});
 
 class App extends Component {
   render() {
@@ -89,14 +114,18 @@ class App extends Component {
       <Provider store={this.props.store}>
         <Grommet theme={theme} full>
           <Box direction='column'>
-            <Box direction='row' pad='none' justify='center' basis='full'>
+            <Box direction='row' pad='none' alignSelf='center'>
               <L1 location='Indoors' low='10' high='35'/>
               <L2 location='Bedroom' low='10' high='35'/>
               <L3 location='Garage' low='0' high='25'/>
               <L4 location='Heating' low='0' high='60'/>
             </Box>
-            <Box direction='column' pad='xsmall' basis='full' fill='true' align='center'>
-              <Auth0Button auth={auth} isAuthenticated='false'/>
+            <Box direction='row' pad='xsmall' alignSelf='end'>
+              <HeartBeat/>
+            </Box>
+            <Box direction='row' pad='xsmall' gap='xsmall' alignSelf='center'>
+              <Auth0Button isAuthenticated='false'/>
+              <RefreshButton/>
             </Box>
           </Box>
         </Grommet>
