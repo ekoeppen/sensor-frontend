@@ -108,7 +108,7 @@ const authMiddleware = () => {
 const dbMiddleware = () => {
 	return next => action => {
 		switch (action.type) {
-			case 'AWS_CREDS': fetchHeartBeat(); fetchSensorData(); break;
+			case 'AWS_CREDS':
 			case 'REFRESH': fetchHeartBeat(); fetchSensorData(); break;
 			default: break;
 		}
@@ -128,4 +128,4 @@ const awsAuth = new AWSAuth(store);
 
 auth0Auth.handleAuthentication();
 
-ReactDOM.render(<App auth={auth0Auth} store={store}/>, document.getElementById('root'));
+ReactDOM.render(<App auth={auth0Auth} awsAuth={awsAuth} store={store}/>, document.getElementById('root'));

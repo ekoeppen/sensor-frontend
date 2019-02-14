@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React from 'react';
 import {
   Box,
   Button,
@@ -33,48 +33,26 @@ const theme = {
   }
 };
 
-const subscriber = (subs) => connect(
-  state => {
-    var d = {}
-    for (let s of subs) {
-      d[s.prop] = state[s.key]
-    }
-    return d
-  },
-  dispatch => {return {}})
-
-const L3 = subscriber([
-  {prop: 'temperature', key: 'SWAP/Garage/Temperature'},
-  {prop: 'timestamp', key: 'SWAP/Garage/Timestamp'},
-  {prop: 'voltage', key: 'SWAP/Garage/Voltage'}
-  ])(TemperatureView)
-const L4 = subscriber([
-  {prop: 'temperature', key: 'SWAP/Heating/Temperature'},
-  {prop: 'timestamp', key: 'SWAP/Heating/Timestamp'},
-  {prop: 'voltage', key: 'SWAP/Heating/Voltage'}
-  ])(TemperatureView)
-
-const L1 = connect(
+const temperatureSubscriber = (name) => connect(
   state => {
     return {
-      temperature: state.Indoors.Temperature,
-      humidity: state.Indoors.Humidity,
-      voltage: state.Indoors.Voltage,
-      timestamp: state.Indoors.ts
+      temperature: state[name].Temperature,
+      voltage: state[name].Voltage,
+      timestamp: state[name].ts
     }
   }
-)(TemperatureHumidityView);
+)(TemperatureView)
 
-const L2 = connect(
+const temperatureHumiditySubscriber = (name) => connect(
   state => {
     return {
-      temperature: state.Bedroom.Temperature,
-      humidity: state.Bedroom.Humidity,
-      voltage: state.Bedroom.Voltage,
-      timestamp: state.Bedroom.ts
+      temperature: state[name].Temperature,
+      humidity: state[name].Humidity,
+      voltage: state[name].Voltage,
+      timestamp: state[name].ts
     }
   }
-)(TemperatureHumidityView);
+)(TemperatureHumidityView)
 
 const login = () => ({type: 'LOGIN'})
 const logout = () => ({type: 'LOGOUT'})
@@ -108,30 +86,39 @@ const HeartBeat = connect(
   }
 });
 
-class App extends Component {
-  render() {
-    return (
-      <Provider store={this.props.store}>
-        <Grommet theme={theme} full>
-          <Box direction='column'>
-            <Box direction='row' pad='none' alignSelf='center'>
-              <L1 location='Indoors' low='10' high='35'/>
-              <L2 location='Bedroom' low='10' high='35'/>
-              <L3 location='Garage' low='0' high='25'/>
-              <L4 location='Heating' low='0' high='60'/>
-            </Box>
-            <Box direction='row' pad='xsmall' alignSelf='end'>
-              <HeartBeat/>
-            </Box>
-            <Box direction='row' pad='xsmall' gap='xsmall' alignSelf='center'>
-              <Auth0Button isAuthenticated='false'/>
-              <RefreshButton/>
-            </Box>
-          </Box>
-        </Grommet>
-      </Provider>
-      );
-  }
+const sensors = [
+  {name: 'Indoors', fn: temperatureHumiditySubscriber, low: 10, high: 35},
+  {name: 'Bedroom', fn: temperatureHumiditySubscriber, low: 10, high: 35},
+  {name: 'Garage', fn: temperatureSubscriber, low: 0, high: 25},
+  {name: 'Heating', fn: temperatureSubscriber, low: 10, high: 40},
+]
+
+const App = (props) => {
+  let elements = sensors.map(sensor => {
+    let s = sensor.fn(sensor.name)
+    return React.createElement(s, {
+      key: sensor.name, location: sensor.name, low: sensor.low, high: sensor.high},
+      null)
+  })
+
+  console.log(`Authenticated: ${props.awsAuth}`)
+
+  return <Provider store={props.store}>
+    <Grommet theme={theme} full>
+      <Box direction='column'>
+        <Box direction='row' pad='none' alignSelf='center'>
+          {elements}
+        </Box>
+        <Box direction='row' pad='xsmall' alignSelf='end'>
+          <HeartBeat/>
+        </Box>
+        <Box direction='row' pad='xsmall' gap='xsmall' alignSelf='center'>
+          <Auth0Button isAuthenticated='false'/>
+          <RefreshButton/>
+        </Box>
+      </Box>
+    </Grommet>
+  </Provider>
 }
 
 export default App;
