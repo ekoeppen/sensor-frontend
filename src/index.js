@@ -11,6 +11,7 @@ import {
 	applyMiddleware,
 	compose
 } from 'redux'
+import { Provider } from 'react-redux'
 
 const sensorMap = {
 	'01234567': 'Bedroom',
@@ -128,4 +129,4 @@ const awsAuth = new AWSAuth(store);
 
 auth0Auth.handleAuthentication();
 
-ReactDOM.render(<App auth={auth0Auth} awsAuth={awsAuth} store={store}/>, document.getElementById('root'));
+ReactDOM.render(<Provider store={store}><App/></Provider>, document.getElementById('root'));

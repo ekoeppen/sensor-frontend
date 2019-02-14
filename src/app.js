@@ -7,7 +7,6 @@ import {
 } from 'grommet';
 import {
   connect,
-  Provider
 } from 'react-redux'
 import {
   TemperatureView,
@@ -93,7 +92,9 @@ const sensors = [
   {name: 'Heating', fn: temperatureSubscriber, low: 10, high: 40},
 ]
 
-const App = (props) => {
+const App = connect(
+  state => ({awsCredentials: state.awsCredentials})
+)((props) => {
   let elements = sensors.map(sensor => {
     let s = sensor.fn(sensor.name)
     return React.createElement(s, {
@@ -101,10 +102,9 @@ const App = (props) => {
       null)
   })
 
-  console.log(`Authenticated: ${props.awsAuth}`)
+  console.log(props.awsCredentials)
 
-  return <Provider store={props.store}>
-    <Grommet theme={theme} full>
+  return <Grommet theme={theme} full>
       <Box direction='column'>
         <Box direction='row' pad='none' alignSelf='center'>
           {elements}
@@ -118,7 +118,6 @@ const App = (props) => {
         </Box>
       </Box>
     </Grommet>
-  </Provider>
-}
+})
 
 export default App;
