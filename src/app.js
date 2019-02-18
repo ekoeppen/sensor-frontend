@@ -61,6 +61,11 @@ const temperatureHumiditySubscriber = (name) => connect(
   }
 )(TemperatureHumidityView)
 
+const typeToSubscriber = {
+  'Temperature': temperatureSubscriber,
+  'TemperatureHumidity': temperatureHumiditySubscriber,
+}
+
 const login = () => ({type: 'LOGIN'})
 const logout = () => ({type: 'LOGOUT'})
 const refresh = () => ({type: 'REFRESH'})
@@ -93,26 +98,18 @@ const HeartBeat = connect(
   }
 });
 
-const sensors = [
-  {name: 'Indoors', fn: temperatureHumiditySubscriber, low: 10, high: 35},
-  {name: 'Bedroom', fn: temperatureHumiditySubscriber, low: 10, high: 35},
-  {name: 'Garage', fn: temperatureSubscriber, low: 0, high: 25},
-  {name: 'Heating', fn: temperatureSubscriber, low: 10, high: 40},
-]
-
 const App = connect(
-  state => ({awsCredentials: state.awsCredentials})
+  state => ({sensors: state.sensors})
 )((props) => {
-  let elements = sensors.map(sensor => {
-    let s = sensor.fn(sensor.name)
+  let elements = props.sensors.map(sensor => {
+    let s = typeToSubscriber[sensor.type](sensor.name)
     return React.createElement(s, {
       key: sensor.name, location: sensor.name, low: sensor.low, high: sensor.high},
       null)
   })
 
-  console.log(props.awsCredentials)
-
-  return <Grommet theme={theme} full>
+  if (props.sensors.length > 0) {
+    return <Grommet theme={theme} full>
       <Box direction='column'>
         <Box direction='row' pad='none' alignSelf='center'>
           {elements}
@@ -124,8 +121,15 @@ const App = connect(
           <Auth0Button isAuthenticated='false'/>
           <RefreshButton/>
         </Box>
-      </Box>
-    </Grommet>
+      </Box></Grommet>
+    } else {
+      return <Grommet theme={theme} full>
+        <Box direction='column'>
+          <Box direction='row' pad='xsmall' gap='xsmall' alignSelf='center'>
+            <Auth0Button isAuthenticated='false'/>
+          </Box>
+        </Box></Grommet>
+    }
 })
 
 export default App;
