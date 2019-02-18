@@ -34,21 +34,29 @@ const theme = {
 
 const temperatureSubscriber = (name) => connect(
   state => {
-    return {
-      temperature: state[name].Temperature,
-      voltage: state[name].Voltage,
-      timestamp: state[name].ts
+    if (state[name]) {
+      return {
+        temperature: state[name].Temperature,
+        voltage: state[name].Voltage,
+        timestamp: state[name].ts
+      }
+    } else {
+      return state
     }
   }
 )(TemperatureView)
 
 const temperatureHumiditySubscriber = (name) => connect(
   state => {
-    return {
-      temperature: state[name].Temperature,
-      humidity: state[name].Humidity,
-      voltage: state[name].Voltage,
-      timestamp: state[name].ts
+    if (state[name]) {
+      return {
+        temperature: state[name].Temperature,
+        humidity: state[name].Humidity,
+        voltage: state[name].Voltage,
+        timestamp: state[name].ts
+      }
+    } else {
+      return state
     }
   }
 )(TemperatureHumidityView)
